@@ -8,7 +8,7 @@ CREATE TABLE "user" (
      "id" uuid PRIMARY KEY,
      "username" varchar,
      "role" role,
-     "email" varchar
+     "email" varchar,
      "password" varchar,
      "createdAt" timestamp
 );
