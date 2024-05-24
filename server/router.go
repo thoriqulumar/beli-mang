@@ -3,9 +3,12 @@ package server
 import (
 	"beli-mang/config"
 	"beli-mang/controller"
+	"beli-mang/repo"
 	"beli-mang/service"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
@@ -21,6 +24,7 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 	})
 
 	registerImageRoute(mainRoute, cfg, s.logger)
+	registerMerchantRoute(mainRoute, s.db, s.validator)
 }
 
 func registerImageRoute(e *echo.Echo, cfg *config.Config, logger *zap.Logger) {
@@ -29,4 +33,10 @@ func registerImageRoute(e *echo.Echo, cfg *config.Config, logger *zap.Logger) {
 	// e.POST("/image", auth(ctr.PostImage))
 	// disable auth because it's not ready
 	e.POST("/image", ctr.PostImage)
+}
+
+func registerMerchantRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Validate) {
+	ctr := controller.NewMerchantController(service.NewMerchantService(repo.NewMerchantRepository(db)), validate)
+
+	e.POST("/admin/merchants", ctr.CreateMerchant)
 }
