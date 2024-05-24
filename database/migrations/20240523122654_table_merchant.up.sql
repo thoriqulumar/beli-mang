@@ -1,4 +1,4 @@
-CREATE TYPE "merchantCategory" AS ENUM (
+CREATE TYPE merchantCategory AS ENUM (
   'SmallRestaurant',
   'MediumRestaurant',
   'LargeRestaurant',
