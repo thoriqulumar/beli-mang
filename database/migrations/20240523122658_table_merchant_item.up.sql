@@ -1,4 +1,4 @@
-CREATE TYPE "itemCategory" AS ENUM (
+CREATE TYPE itemCategory AS ENUM (
     'Beverage',
     'Food',
     'Snack',
@@ -12,7 +12,7 @@ CREATE TABLE "merchantItem" (
      "merchantId" uuid,
      "name" varchar,
      "category" itemCategory,
-     "imageUrl" varchar
-     "price" int
+     "imageUrl" varchar,
+     "price" int,
      "createdAt" timestamp
 );
