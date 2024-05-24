@@ -10,12 +10,12 @@ import (
 )
 
 func (s *Server) RegisterRoute(cfg *config.Config) {
-	mainRoute := s.app.Group("/v1")
+	mainRoute := s.app
 
 	registerImageRoute(mainRoute, cfg, s.logger)
 }
 
-func registerImageRoute(e *echo.Group, cfg *config.Config, logger *zap.Logger) {
+func registerImageRoute(e *echo.Echo, cfg *config.Config, logger *zap.Logger) {
 	ctr := controller.NewImageController(service.NewImageService(cfg, logger))
 	// auth := middleware.Authentication(cfg.JWTSecret)
 	// e.POST("/image", auth(ctr.PostImage))

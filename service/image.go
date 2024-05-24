@@ -22,14 +22,14 @@ type ImageService interface {
 }
 
 type imageService struct {
-	cfg *config.Config
-	log *zap.Logger
+	cfg    *config.Config
+	logger *zap.Logger
 }
 
-func NewImageService(cfg *config.Config, log *zap.Logger) ImageService {
+func NewImageService(cfg *config.Config, logger *zap.Logger) ImageService {
 	return &imageService{
-		cfg: cfg,
-		log: log,
+		cfg:    cfg,
+		logger: logger,
 	}
 }
 
@@ -41,6 +41,7 @@ func (s *imageService) UploadImage(file *multipart.FileHeader) <-chan string {
 
 		src, err := file.Open()
 		if err != nil {
+			s.logger.Error("Failed to open file for upload:", zap.Error(err))
 			fileURLChan <- ""
 			return
 		}
@@ -51,6 +52,7 @@ func (s *imageService) UploadImage(file *multipart.FileHeader) <-chan string {
 
 		url, err := uploadToS3(src, fileName, s.cfg)
 		if err != nil {
+			s.logger.Error("Failed to upload file to S3:", zap.Error(err))
 			fileURLChan <- ""
 			return
 		}
