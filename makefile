@@ -13,13 +13,13 @@ build-app:
 	@echo "+ $@"
 	@echo "version=${VERSION}"
 	go build -v \
-        -ldflags="-w -s -X github.com/thoriqulumar/halo-suster/version.Version=${VERSION}" \
-		-o bin/thorumr_halo-suster \
+        -ldflags="-w -s -X github.com/thoriqulumar/beli-mang/version.Version=${VERSION}" \
+		-o bin/thorumr_beli-mang \
 		cmd/main.go
 
 .PHONY: run-app
 run-app: 
-	$(MAKE) build-app && ./bin/thorumr_halo-suster
+	$(MAKE) build-app && ./bin/thorumr_beli-mang
 
 .PHONY: migrate-up
 migrate-up:
