@@ -37,7 +37,7 @@ func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMe
 	var listMerchant []model.Merchant
 	var getMerchantQuery = `SELECT * FROM "merchant" WHERE true`
 	var total int = 0
-	var metaData = &model.MetaData{
+	var metaData = model.MetaData{
 		Offset: params.Offset,
 		Limit: params.Limit,
 		Total: 0,
@@ -73,7 +73,7 @@ func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMe
 
 	rows, err := r.db.QueryContext(ctx, getMerchantQuery)
 	if err != nil {
-		return nil, *metaData, err
+		return nil, metaData, err
 	}
 
 	defer rows.Close()
@@ -82,16 +82,16 @@ func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMe
 	for rows.Next() {
 		var merchant model.Merchant
 		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Latitude, &merchant.Longitude, &merchant.CreatedAt); err != nil {
-			return nil, *metaData, err
+			return nil, metaData, err
 		}
 		total += 1
 		listMerchant = append(listMerchant, merchant)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, *metaData, err
+		return nil, metaData, err
 	}
 
 	metaData.Total = total
 
-	return listMerchant, *metaData, nil
+	return listMerchant, metaData, nil
 }

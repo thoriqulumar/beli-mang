@@ -54,10 +54,9 @@ func (ctr *MerchantController) GetMerchant(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, model.MerchantGeneralResponse{
 		Message: "success",
 		Data:    data,
-		Meta: &meta,
+		Meta:    meta,
 	})
 }
-
 
 func parseGetMerchantParams(params url.Values) model.GetMerchantParams {
 	var result model.GetMerchantParams

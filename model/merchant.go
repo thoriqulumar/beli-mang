@@ -41,7 +41,7 @@ type MetaData struct {
 type MerchantGeneralResponse struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
-	Meta    *MetaData `json:"meta,omitempty"`
+	Meta    MetaData `json:"meta,omitempty"`
 }
 
 type GetMerchantParams struct {
