@@ -6,14 +6,26 @@ import (
 	"github.com/google/uuid"
 )
 
+type MerchantCategory string
+
+// enum of merchant category, reduce miss typing
+const (
+	SmallRestaurant       MerchantCategory = "SmallRestaurant"
+	MediumRestaurant      MerchantCategory = "MediumRestaurant"
+	LargeRestaurant       MerchantCategory = "LargeRestaurant"
+	MerchandiseRestaurant MerchantCategory = "MerchandiseRestaurant"
+	BoothKiosk            MerchantCategory = "BoothKiosk"
+	ConvenienceStore      MerchantCategory = "ConvenienceStore"
+)
+
 type Merchant struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	Name      string    `json:"name" db:"name"`
-	Category  string    `json:"category" db:"category"`
-	ImageURL  string    `json:"imageUrl" db:"imageUrl"`
-	Latitude  float64   `json:"latitude" db:"latitude"`
-	Longitude float64   `json:"longitude" db:"longitude"`
-	CreatedAt time.Time `json:"createdAt" db:"createdAt"`
+	ID        uuid.UUID        `json:"id" db:"id"`
+	Name      string           `json:"name" db:"name"`
+	Category  MerchantCategory `json:"category" db:"category"`
+	ImageURL  string           `json:"imageUrl" db:"imageUrl"`
+	Latitude  float64          `json:"latitude" db:"latitude"`
+	Longitude float64          `json:"longitude" db:"longitude"`
+	CreatedAt time.Time        `json:"createdAt" db:"createdAt"`
 }
 
 type CreateMerchantRequest struct {
