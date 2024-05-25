@@ -3,12 +3,14 @@ package service
 import (
 	"beli-mang/model"
 	"beli-mang/repo"
+	"context"
 
 	"github.com/google/uuid"
 )
 
 type MerchantService interface {
 	CreateMerchant(request model.CreateMerchantRequest) (merchantId string, err error)
+	GetMerchant(ctx context.Context, params model.GetMerchantParams) (listMerchant []model.Merchant, meta model.MetaData, err error)
 }
 
 type merchantSvc struct {
@@ -39,4 +41,13 @@ func (s *merchantSvc) CreateMerchant(request model.CreateMerchantRequest) (merch
 	}
 
 	return id.String(), nil
+}
+
+func (s *merchantSvc) GetMerchant(ctx context.Context, params model.GetMerchantParams) (listMerchant []model.Merchant, meta model.MetaData, err error) {
+	listMerchant, meta, err = s.repo.GetMerchant(ctx, params)
+	if err != nil {
+		return
+	}
+
+	return listMerchant, meta, nil
 }
