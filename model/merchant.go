@@ -41,7 +41,7 @@ type MetaData struct {
 type MerchantGeneralResponse struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
-	Meta    MetaData `json:"meta,omitempty"`
+	Meta    MetaData    `json:"meta,omitempty"`
 }
 
 type GetMerchantParams struct {
@@ -51,4 +51,25 @@ type GetMerchantParams struct {
 	Limit            int
 	Offset           int
 	CreatedAt        string
+}
+
+type MerchantItem struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	MerchantId string    `json:"merchantId" db:"merchantId"`
+	Name       string    `json:"name" db:"name"`
+	Category   string    `json:"category" db:"category"`
+	ImageURL   string    `json:"imageUrl" db:"imageUrl"`
+	Price      int       `json:"price" db:"price"`
+	CreatedAt  time.Time `json:"createdAt" db:"createdAt"`
+}
+
+type CreateMerchantItemRequest struct {
+	Name            string `json:"name" validate:"required,min=2,max=30"`
+	ProductCategory string `json:"productCategory" validate:"required,oneof=Beverage Food Snack Condiments Additions"`
+	ImageURL        string `json:"imageUrl" validate:"required,custom_url"`
+	Price           int    `json:"price" validate:"required"`
+}
+
+type CreateMerchantItemResponse struct {
+	ItemId string `json:"itemId"`
 }

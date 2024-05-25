@@ -58,6 +58,21 @@ func (ctr *MerchantController) GetMerchant(ctx echo.Context) error {
 	})
 }
 
+func (ctr *MerchantController) CreateMerchantItem(ctx echo.Context) error {
+	merchantID := ctx.Param("merchantId")
+	var createMerchantItemRequest model.CreateMerchantItemRequest
+	if err := ctx.Bind(&createMerchantItemRequest); err != nil {
+		return ctx.JSON(http.StatusBadRequest, model.CreateMerchantGeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
+	}
+
+	itemId, err := ctr.svc.CreateMerchantItem(ctx.Request().Context(), createMerchantItemRequest, merchantID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.CreateMerchantGeneralResponse{Message: "Internal server error!", Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusCreated, model.CreateMerchantItemResponse{ItemId: itemId})
+}
+
 func parseGetMerchantParams(params url.Values) model.GetMerchantParams {
 	var result model.GetMerchantParams
 

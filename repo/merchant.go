@@ -11,6 +11,8 @@ import (
 type MerchantRepository interface {
 	CreateMerchant(request model.Merchant) error
 	GetMerchant(ctx context.Context, params model.GetMerchantParams) (patients []model.Merchant, meta model.MetaData, err error)
+	GetMerchantById(ctx context.Context, merchantId string) (merchant model.Merchant, err error)
+	CreateMerchantItem(request model.MerchantItem) error
 }
 
 type merchantRepository struct {
@@ -33,14 +35,30 @@ func (r *merchantRepository) CreateMerchant(request model.Merchant) error {
 	return r.db.QueryRowx(createMerchantQuery, request.ID, request.Name, request.Category, request.ImageURL, request.Latitude, request.Longitude).Scan(&request.ID)
 }
 
+var (
+	getMerchantByIdQuery = `
+	SELECT * FROM "merchant" WHERE id = $1;
+`
+)
+
+func (r *merchantRepository) GetMerchantById(ctx context.Context, merchantId string) (merchant model.Merchant, err error) {
+	err = r.db.QueryRowxContext(ctx, getMerchantByIdQuery, merchantId).StructScan(&merchant)
+
+	if err != nil {
+		return
+	}
+
+	return merchant, nil
+}
+
 func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMerchantParams) (patients []model.Merchant, meta model.MetaData, err error) {
 	var listMerchant []model.Merchant
 	var getMerchantQuery = `SELECT * FROM "merchant" WHERE true`
 	var total int = 0
 	var metaData = model.MetaData{
 		Offset: params.Offset,
-		Limit: params.Limit,
-		Total: 0,
+		Limit:  params.Limit,
+		Total:  0,
 	}
 
 	if params.Name != "" {
@@ -94,4 +112,17 @@ func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMe
 	metaData.Total = total
 
 	return listMerchant, metaData, nil
+}
+
+
+var (
+	createMerchantItemQuery = `
+	INSERT INTO "merchantItem" (id, "merchantId", name, "category", "imageUrl", price, "createdAt")
+	VALUES ($1, $2, $3, $4, $5, $6, NOW())
+	RETURNING id;
+`
+)
+
+func (r *merchantRepository) CreateMerchantItem(request model.MerchantItem) error {
+	return r.db.QueryRowx(createMerchantItemQuery, request.ID, request.MerchantId, request.Name, request.Category, request.ImageURL, request.Price).Scan(&request.ID)
 }
