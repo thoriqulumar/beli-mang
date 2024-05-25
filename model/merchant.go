@@ -32,3 +32,23 @@ type CreateMerchantGeneralResponse struct {
 	Message string
 	Error   string
 }
+
+type MetaData struct {
+	Offset int `json:"offset"`
+	Limit  int `json:"limit"`
+	Total  int `json:"total"`
+}
+type MerchantGeneralResponse struct {
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+	Meta    *MetaData `json:"meta,omitempty"`
+}
+
+type GetMerchantParams struct {
+	MerchantId       string
+	Name             string
+	MerchantCategory string
+	Limit            int
+	Offset           int
+	CreatedAt        string
+}
