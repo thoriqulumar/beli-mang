@@ -30,7 +30,7 @@ func (s *merchantSvc) CreateMerchant(request model.CreateMerchantRequest) (merch
 	merchant := model.Merchant{
 		ID:        id,
 		Name:      request.Name,
-		Category:  request.Category,
+		Category:  model.MerchantCategory(request.Category),
 		ImageURL:  request.ImageURL,
 		Latitude:  request.Latitude,
 		Longitude: request.Longitude,

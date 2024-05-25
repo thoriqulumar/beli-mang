@@ -42,3 +42,11 @@ func registerMerchantRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Valida
 	e.GET("/admin/merchants", ctr.GetMerchant)
 	e.POST("/admin/merchants/:merchantId/items", ctr.CreateMerchantItem)
 }
+
+func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Validate) {
+	ctr := controller.NewPurchaseController(service.NewPurchaseService(repo.NewOrderRepository(db), repo.NewMerchantRepository(db)), validate)
+
+	e.POST("/users/estimate", ctr.EstimateOrders)
+	e.POST("/users/orders", ctr.ConfirmOrder)
+	e.GET("/users/orders", ctr.GetUserOrders)
+}
