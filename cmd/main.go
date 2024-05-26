@@ -4,6 +4,8 @@ import (
 	application "beli-mang"
 	"beli-mang/config"
 	"context"
+	// see https://pkg.go.dev/net/http/pprof for the docs
+	_ "net/http/pprof"
 )
 
 func main() {
