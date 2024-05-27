@@ -25,6 +25,7 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 
 	registerImageRoute(mainRoute, cfg, s.logger)
 	registerMerchantRoute(mainRoute, s.db, s.validator)
+	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
 }
 
 func registerImageRoute(e *echo.Echo, cfg *config.Config, logger *zap.Logger) {
@@ -39,4 +40,15 @@ func registerMerchantRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Valida
 	ctr := controller.NewMerchantController(service.NewMerchantService(repo.NewMerchantRepository(db)), validate)
 
 	e.POST("/admin/merchants", ctr.CreateMerchant)
+}
+
+func registerStaffRoute(e *echo.Echo, db *sqlx.DB, cfg *config.Config, validate *validator.Validate) {
+	ctr := controller.NewStaffController(service.NewStaffService(cfg, repo.NewStaffRepo(db)), validate)
+
+	e.POST("/admin/register", ctr.RegisterStaffAdmin)
+	e.POST("/admin/login", ctr.LoginStaffAdmin)
+
+	e.POST("/users/register", ctr.RegisterStaffUser)
+	e.POST("/users/login", ctr.LoginStaffUser)
+
 }
