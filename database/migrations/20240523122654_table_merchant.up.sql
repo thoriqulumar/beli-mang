@@ -1,4 +1,4 @@
-CREATE TYPE merchantCategory AS ENUM (
+CREATE TYPE "merchantCategory" AS ENUM (
   'SmallRestaurant',
   'MediumRestaurant',
   'LargeRestaurant',
@@ -11,7 +11,7 @@ CREATE TYPE merchantCategory AS ENUM (
 CREATE TABLE "merchant" (
      "id" uuid PRIMARY KEY,
      "name" varchar,
-     "category" merchantCategory,
+     "category" "merchantCategory",
      "imageUrl" varchar,
      "latitude" float,
      "longitude" float,

@@ -17,8 +17,15 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.53.9
+<<<<<<< HEAD
 	github.com/golang-jwt/jwt/v5 v5.2.1
+=======
+	github.com/cep21/circuit v3.0.0+incompatible
+	github.com/cep21/circuit/v3 v3.2.2
+>>>>>>> d6eb7f016daf345022fe9e1a5536874dd1b2613d
 	github.com/google/uuid v1.6.0
+	github.com/karlseguin/ccache v2.0.3+incompatible
+	golang.org/x/sync v0.7.0
 )
 
 require (
@@ -27,6 +34,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/karlseguin/expect v1.0.8 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
