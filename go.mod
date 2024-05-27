@@ -17,12 +17,9 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go v1.53.9
-<<<<<<< HEAD
-	github.com/golang-jwt/jwt/v5 v5.2.1
-=======
 	github.com/cep21/circuit v3.0.0+incompatible
 	github.com/cep21/circuit/v3 v3.2.2
->>>>>>> d6eb7f016daf345022fe9e1a5536874dd1b2613d
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/karlseguin/ccache v2.0.3+incompatible
 	golang.org/x/sync v0.7.0
