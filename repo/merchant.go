@@ -17,6 +17,7 @@ type MerchantRepository interface {
 	GetMerchant(ctx context.Context, params model.GetMerchantParams) (patients []model.Merchant, meta model.MetaData, err error)
 	GetMerchantById(ctx context.Context, merchantId string) (merchant model.Merchant, err error)
 	CreateMerchantItem(request model.MerchantItem) error
+	GetMerchantItem(ctx context.Context, params model.GetMerchantItemParams) (patients []model.MerchantItem, meta model.MetaData, err error)
 }
 
 type merchantRepository struct {
@@ -173,4 +174,69 @@ var (
 
 func (r *merchantRepository) CreateMerchantItem(request model.MerchantItem) error {
 	return r.db.QueryRowx(createMerchantItemQuery, request.ID, request.MerchantId, request.Name, request.Category, request.ImageURL, request.Price).Scan(&request.ID)
+}
+
+
+
+func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.GetMerchantItemParams) (patients []model.MerchantItem, meta model.MetaData, err error) {
+	var listMerchantItem []model.MerchantItem
+	var getMerchantItemQuery = `SELECT * FROM "merchantItem" WHERE true`
+	var total int = 0
+	var metaData = model.MetaData{
+		Offset: params.Offset,
+		Limit:  params.Limit,
+		Total:  0,
+	}
+
+	if params.Name != "" {
+		name := "%" + params.Name + "%"
+		getMerchantItemQuery += fmt.Sprintf(` AND "name" ILIKE '%s'`, name)
+	}
+
+	if params.ItemId != "" {
+		getMerchantItemQuery += fmt.Sprintf(` AND "id" = %s`, params.ItemId)
+	}
+
+	if params.ProductCategory != "" {
+		getMerchantItemQuery += fmt.Sprintf(` AND "category" = %s`, params.ProductCategory)
+	}
+
+	if params.CreatedAt != "" {
+		if params.CreatedAt != "desc" && params.CreatedAt != "asc" {
+			params.CreatedAt = "desc"
+		}
+		getMerchantItemQuery += fmt.Sprintf(` ORDER BY "createdAt" %s`, params.CreatedAt)
+	} else {
+		getMerchantItemQuery += ` ORDER BY "createdAt" DESC`
+	}
+
+	if params.Limit == 0 {
+		params.Limit = 5 // default limit
+	}
+
+	getMerchantItemQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, params.Limit, params.Offset)
+
+	rows, err := r.db.QueryContext(ctx, getMerchantItemQuery)
+	if err != nil {
+		return nil, metaData, err
+	}
+
+	defer rows.Close()
+
+	// Iterate over the rows and scan each row into a struct
+	for rows.Next() {
+		var merchantItem model.MerchantItem
+		if err := rows.Scan(&merchantItem.ID, &merchantItem.Name, &merchantItem.Category, &merchantItem.Price, &merchantItem.ImageURL, &merchantItem.CreatedAt); err != nil {
+			return nil, metaData, err
+		}
+		total += 1
+		listMerchantItem = append(listMerchantItem, merchantItem)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, metaData, err
+	}
+
+	metaData.Total = total
+
+	return listMerchantItem, metaData, nil
 }

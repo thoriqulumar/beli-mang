@@ -41,6 +41,7 @@ func registerMerchantRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Valida
 	e.POST("/admin/merchants", ctr.CreateMerchant)
 	e.GET("/admin/merchants", ctr.GetMerchant)
 	e.POST("/admin/merchants/:merchantId/items", ctr.CreateMerchantItem)
+	e.GET("/admin/merchants/:merchantId/items", ctr.GetMerchantItem)
 }
 
 func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Validate) {

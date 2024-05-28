@@ -85,3 +85,12 @@ type CreateMerchantItemRequest struct {
 type CreateMerchantItemResponse struct {
 	ItemId string `json:"itemId"`
 }
+
+type GetMerchantItemParams struct {
+	ItemId          string
+	Name            string
+	ProductCategory string
+	Limit           int
+	Offset          int
+	CreatedAt       string
+}
