@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -65,7 +66,13 @@ func (ctr *MerchantController) CreateMerchantItem(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, model.CreateMerchantGeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
 	}
 
-	itemId, err := ctr.svc.CreateMerchantItem(ctx.Request().Context(), createMerchantItemRequest, merchantID)
+	merchantUUID, err := uuid.Parse(merchantID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.CreateMerchantGeneralResponse{Message: "Internal server error!", Error: err.Error()})
+	}
+
+
+	itemId, err := ctr.svc.CreateMerchantItem(ctx.Request().Context(), createMerchantItemRequest, merchantUUID)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, model.CreateMerchantGeneralResponse{Message: "Internal server error!", Error: err.Error()})
 	}
@@ -81,8 +88,13 @@ func (ctr *MerchantController) GetMerchantItem(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "params not valid"})
 	}
 
+	merchantUUID, err := uuid.Parse(merchantID)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.CreateMerchantGeneralResponse{Message: "Internal server error!", Error: err.Error()})
+	}
+
 	// query to service
-	data, meta, err := ctr.svc.GetMerchantItem(ctx.Request().Context(), merchantID, parseGetMerchantItemParams(value))
+	data, meta, err := ctr.svc.GetMerchantItem(ctx.Request().Context(), merchantUUID, parseGetMerchantItemParams(value))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
