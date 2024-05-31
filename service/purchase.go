@@ -2,12 +2,15 @@ package service
 
 import (
 	"beli-mang/model"
+	"beli-mang/pkg/panics"
 	"beli-mang/repo"
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"math"
 	"strings"
+	"sync"
 )
 
 type PurchaseService interface {
@@ -19,12 +22,14 @@ type PurchaseService interface {
 type purchaseSvc struct {
 	orderRepo    repo.OrderRepository
 	merchantRepo repo.MerchantRepository
+	logger       *zap.Logger
 }
 
-func NewPurchaseService(orderRepo repo.OrderRepository, merchantRepo repo.MerchantRepository) PurchaseService {
+func NewPurchaseService(orderRepo repo.OrderRepository, merchantRepo repo.MerchantRepository, logger *zap.Logger) PurchaseService {
 	return &purchaseSvc{
 		orderRepo:    orderRepo,
 		merchantRepo: merchantRepo,
+		logger:       logger,
 	}
 }
 
@@ -33,6 +38,7 @@ try use one table transaction
 */
 
 func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.EstimateOrdersRequest) (response model.EstimateOrdersResponse, err error) {
+	logPrefix := "[purchase] EstimateOrders"
 	// calculate distance by tsp
 	end := model.Point{
 		Lat: request.UserLocation.Lat,
@@ -51,18 +57,32 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		}
 	}
 
-	// TODO, use go routine to faster gather the data
-	// get merchantsLocation
-	mapMerchant, err := s.merchantRepo.GetMerchantMapByIds(ctx, merchantIds)
-	if err != nil {
-		return response, err
-	}
+	// use go routine to get data concurrently
+	var mapMerchant map[uuid.UUID]model.Merchant
+	var mapItems map[uuid.UUID]model.Item
+	var errWg error
+	var wg sync.WaitGroup
 
-	// get itemIds Batch
-	mapItems, err := s.merchantRepo.GetMerchantItemMapByIds(ctx, itemIds)
-	if err != nil {
-		return response, err
-	}
+	go panics.CaptureGoroutine(func() {
+		wg.Add(1)
+		// get merchantsLocation
+		mapMerchant, errWg = s.merchantRepo.GetMerchantMapByIds(ctx, merchantIds)
+		if errWg != nil {
+			s.logger.Error(logPrefix+"failed to get merchant map", zap.Error(errWg))
+		}
+	}, func() {})
+
+	go panics.CaptureGoroutine(func() {
+		wg.Add(1)
+		// get itemIds Batch
+		mapItems, errWg = s.merchantRepo.GetMerchantItemMapByIds(ctx, itemIds)
+		if errWg != nil {
+			s.logger.Error(logPrefix+"failed to get merchant item map", zap.Error(errWg))
+		}
+	}, func() {})
+
+	wg.Wait()
+
 	for _, item := range mapItems {
 		totalPrice += item.Price * mapItemQuantity[item.Id]
 	}
@@ -96,6 +116,17 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 	estTime := EstimateDeliveryTimeTSP([]model.Point{}, end)
 
 	// tx start
+	tx, err := s.orderRepo.BeginTx(ctx)
+	if err != nil {
+		return response, err
+	}
+	defer func() {
+		if err != nil {
+			err = tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
 	// submit order draft
 	orderId := uuid.New()
 	orderData := model.Order{
@@ -111,7 +142,7 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		UserLatitude:       request.UserLocation.Lat,
 		UserLongitude:      request.UserLocation.Long,
 	}
-	_, err = s.orderRepo.Create(ctx, orderData)
+	_, err = s.orderRepo.Create(ctx, tx, orderData)
 	if err != nil {
 		return response, err
 	}
@@ -123,7 +154,7 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		CalculatedEstimateId:           uuid.New(),
 		OrderId:                        orderId,
 	}
-	_, err = s.orderRepo.InsertCalculation(ctx, calculatedData)
+	_, err = s.orderRepo.InsertCalculation(ctx, tx, calculatedData)
 	if err != nil {
 		return response, err
 	}

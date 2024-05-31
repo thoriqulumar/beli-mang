@@ -26,6 +26,7 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 	registerImageRoute(mainRoute, cfg, s.logger)
 	registerMerchantRoute(mainRoute, s.db, s.validator)
 	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
+	registerPurchaseRoute(mainRoute, s.db, s.validator, s.logger)
 }
 
 func registerImageRoute(e *echo.Echo, cfg *config.Config, logger *zap.Logger) {
@@ -45,8 +46,8 @@ func registerMerchantRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Valida
 	e.GET("/admin/merchants/:merchantId/items", ctr.GetMerchantItem)
 }
 
-func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Validate) {
-	ctr := controller.NewPurchaseController(service.NewPurchaseService(repo.NewOrderRepository(db), repo.NewMerchantRepository(db)), validate)
+func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, validate *validator.Validate, logger *zap.Logger) {
+	ctr := controller.NewPurchaseController(service.NewPurchaseService(repo.NewOrderRepository(db), repo.NewMerchantRepository(db), logger), validate)
 
 	e.POST("/users/estimate", ctr.EstimateOrders)
 	e.POST("/users/orders", ctr.ConfirmOrder)
