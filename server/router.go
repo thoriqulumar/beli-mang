@@ -28,6 +28,7 @@ func (s *Server) RegisterRoute(cfg *config.Config) {
 	registerImageRoute(mainRoute, cfg, s.logger)
 	registerMerchantRoute(mainRoute, s.db, cfg, s.validator)
 	registerStaffRoute(mainRoute, s.db, cfg, s.validator)
+	registerPurchaseRoute(mainRoute, s.db, cfg, s.validator, s.logger)
 }
 
 func registerImageRoute(e *echo.Echo, cfg *config.Config, logger *zap.Logger) {
@@ -48,8 +49,8 @@ func registerMerchantRoute(e *echo.Echo, db *sqlx.DB, cfg *config.Config, valida
 	e.GET("/admin/merchants/:merchantId/items", auth(ctr.GetMerchantItem))
 }
 
-func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, cfg *config.Config, validate *validator.Validate) {
-	ctr := controller.NewPurchaseController(service.NewPurchaseService(repo.NewOrderRepository(db), repo.NewMerchantRepository(db)), validate)
+func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, cfg *config.Config, validate *validator.Validate, logger *zap.Logger) {
+	ctr := controller.NewPurchaseController(service.NewPurchaseService(repo.NewOrderRepository(db), repo.NewMerchantRepository(db), logger), validate)
 
 	auth := middleware.Authentication(cfg.JWTSecret, model.RoleUser)
 	e.GET("/merchants/nearby/:lat,:long", auth(ctr.GetMerchantNearby))

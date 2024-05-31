@@ -1,2 +1,2 @@
 -- Drop the calculatedEstimate table
-DROP TABLE IF EXISTS calculatedEstimate;
+DROP TABLE IF EXISTS "calculatedEstimate";
