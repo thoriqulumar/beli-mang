@@ -17,6 +17,7 @@ type PurchaseService interface {
 	EstimateOrders(ctx context.Context, request model.EstimateOrdersRequest) (response model.EstimateOrdersResponse, err error)
 	ConfirmOrder(ctx context.Context, request model.ConfirmOrderRequest) (response model.ConfirmOrderResponse, err error)
 	GetUserOrders(ctx context.Context, request model.UserOrdersParams) (response model.GetUserOrdersResponse, err error)
+	GetNearbyMerchant(ctx context.Context, params model.GetMerchantParams, lat, long string) (listMerchant []model.GetNearbyMerchantData, meta model.MetaData, err error)
 }
 
 type purchaseSvc struct {
@@ -193,4 +194,14 @@ func (s *purchaseSvc) GetUserOrders(ctx context.Context, request model.UserOrder
 	}
 
 	return
+}
+
+
+func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, params model.GetMerchantParams, lat, long string) (listMerchant []model.GetNearbyMerchantData, meta model.MetaData, err error) {
+	listMerchant, meta, err = s.orderRepo.GetNearbyMerchant(ctx, params, lat, long)
+	if err != nil {
+		return
+	}
+
+	return listMerchant, meta, nil
 }

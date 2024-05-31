@@ -53,6 +53,7 @@ func registerPurchaseRoute(e *echo.Echo, db *sqlx.DB, cfg *config.Config, valida
 	ctr := controller.NewPurchaseController(service.NewPurchaseService(repo.NewOrderRepository(db), repo.NewMerchantRepository(db), logger), validate)
 
 	auth := middleware.Authentication(cfg.JWTSecret, model.RoleUser)
+	e.GET("/merchants/nearby/:lat,:long", auth(ctr.GetMerchantNearby))
 	e.POST("/users/estimate", auth(ctr.EstimateOrders))
 	e.POST("/users/orders", auth(ctr.ConfirmOrder))
 	e.GET("/users/orders", auth(ctr.GetUserOrders))
