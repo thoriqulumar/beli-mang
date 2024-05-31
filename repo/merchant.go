@@ -15,7 +15,7 @@ type MerchantRepository interface {
 	GetMerchantMapByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]model.Merchant, error)
 	GetMerchantItemMapByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]model.Item, error)
 	GetMerchant(ctx context.Context, params model.GetMerchantParams) (patients []model.Merchant, meta model.MetaData, err error)
-	GetMerchantById(ctx context.Context, merchantId string) (merchant model.Merchant, err error)
+	GetMerchantById(ctx context.Context, merchantId uuid.UUID) (merchant model.Merchant, err error)
 	CreateMerchantItem(request model.MerchantItem) error
 	GetMerchantItem(ctx context.Context, params model.GetMerchantItemParams) (patients []model.MerchantItem, meta model.MetaData, err error)
 }
@@ -91,7 +91,7 @@ var (
 `
 )
 
-func (r *merchantRepository) GetMerchantById(ctx context.Context, merchantId string) (merchant model.Merchant, err error) {
+func (r *merchantRepository) GetMerchantById(ctx context.Context, merchantId uuid.UUID) (merchant model.Merchant, err error) {
 	err = r.db.QueryRowxContext(ctx, getMerchantByIdQuery, merchantId).StructScan(&merchant)
 
 	if err != nil {

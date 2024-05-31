@@ -67,7 +67,7 @@ type GetMerchantParams struct {
 
 type MerchantItem struct {
 	ID         uuid.UUID `json:"id" db:"id"`
-	MerchantId string    `json:"merchantId" db:"merchantId"`
+	MerchantId uuid.UUID `json:"merchantId" db:"merchantId"`
 	Name       string    `json:"name" db:"name"`
 	Category   string    `json:"category" db:"category"`
 	ImageURL   string    `json:"imageUrl" db:"imageUrl"`
@@ -93,4 +93,9 @@ type GetMerchantItemParams struct {
 	Limit           int
 	Offset          int
 	CreatedAt       string
+}
+
+type GetNearbyMerchantData struct {
+	Merchant Merchant `json:"merchant"`
+	Items    []Item   `json:"items"`
 }
