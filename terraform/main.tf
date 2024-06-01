@@ -6,7 +6,7 @@ module "ecr" {
 data "aws_subnets" "subnets" {
   filter {
     name   = "availability-zone"
-    values = ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"]  # Replace with your availability zones
+    values = ["ap-southeast-1a"]  # Replace with your availability zones
   }
 }
 

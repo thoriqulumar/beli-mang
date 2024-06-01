@@ -42,8 +42,3 @@ variable "db_password" {
   description = "Password for the Postgres database"
   type        = string
 }
-
-variable "container_name" {
-  description = "Name of the container for the service"
-  type        = string
-}
