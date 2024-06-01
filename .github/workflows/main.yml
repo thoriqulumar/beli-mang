@@ -49,10 +49,8 @@ jobs:
         IMAGE_TAG: latest
         COMMIT_SHA: ${{ github.sha }}
       run: |
-        echo "Pushing image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "Pushing image: $ECR_REGISTRY/$ECR_REPOSITORY:$COMMIT_SHA"
-        # docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
     - name: Force new deployment on ECS
       run: |
