@@ -190,7 +190,7 @@ func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.Ge
 		var merchant model.Merchant
 		var items []model.Item
 		var nearbyMerchant model.GetNearbyMerchantData
-		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Latitude, &merchant.Longitude, &merchant.CreatedAt); err != nil {
+		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Location.Lat, &merchant.Location.Long, &merchant.CreatedAt); err != nil {
 			return nil, metaData, err
 		}
 		var getItemById = `SELECT * FROM "merchantItem" WHERE "merchantId" = $1`

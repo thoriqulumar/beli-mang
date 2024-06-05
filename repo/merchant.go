@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -37,7 +38,7 @@ var (
 )
 
 func (r *merchantRepository) CreateMerchant(request model.Merchant) error {
-	return r.db.QueryRowx(createMerchantQuery, request.ID, request.Name, request.Category, request.ImageURL, request.Latitude, request.Longitude).Scan(&request.ID)
+	return r.db.QueryRowx(createMerchantQuery, request.ID, request.Name, request.Category, request.ImageURL, request.Location.Lat, request.Location.Long).Scan(&request.ID)
 }
 
 func (r *merchantRepository) GetMerchantMapByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]model.Merchant, error) {
@@ -87,13 +88,19 @@ func (r *merchantRepository) GetMerchantItemMapByIds(ctx context.Context, ids []
 
 var (
 	getMerchantByIdQuery = `
-	SELECT * FROM "merchant" WHERE id = $1;
+	SELECT "id",
+     "name",
+     "category",
+     "imageUrl",
+     "latitude",
+     "longitude",
+     "createdAt" FROM "merchant" WHERE id = $1;
 `
 )
 
 func (r *merchantRepository) GetMerchantById(ctx context.Context, merchantId uuid.UUID) (merchant model.Merchant, err error) {
-	err = r.db.QueryRowxContext(ctx, getMerchantByIdQuery, merchantId).StructScan(&merchant)
-
+	err = r.db.QueryRowxContext(ctx, getMerchantByIdQuery, merchantId).
+		Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Location.Lat, &merchant.Location.Long, &merchant.CreatedAt)
 	if err != nil {
 		return
 	}
@@ -117,12 +124,14 @@ func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMe
 	}
 
 	if params.MerchantId != "" {
-		getMerchantQuery += fmt.Sprintf(` AND "id" = %s`, params.MerchantId)
+		getMerchantQuery += fmt.Sprintf(` AND "id" = '%s'`, params.MerchantId)
 	}
 
 	if params.MerchantCategory != "" {
-		getMerchantQuery += fmt.Sprintf(` AND "category" = %s`, params.MerchantCategory)
+		getMerchantQuery += fmt.Sprintf(` AND "category" = '%s'`, params.MerchantCategory)
 	}
+
+	getMerchantQueryJustWithFilter := getMerchantQuery
 
 	if params.CreatedAt != "" {
 		if params.CreatedAt != "desc" && params.CreatedAt != "asc" {
@@ -149,16 +158,23 @@ func (r *merchantRepository) GetMerchant(ctx context.Context, params model.GetMe
 	// Iterate over the rows and scan each row into a struct
 	for rows.Next() {
 		var merchant model.Merchant
-		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Latitude, &merchant.Longitude, &merchant.CreatedAt); err != nil {
+		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Location.Lat, &merchant.Location.Long, &merchant.CreatedAt); err != nil {
 			return nil, metaData, err
 		}
-		total += 1
 		listMerchant = append(listMerchant, merchant)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, metaData, err
 	}
 
+	countQuery := strings.Replace(getMerchantQueryJustWithFilter, "SELECT * FROM", "SELECT count(id) FROM", 1)
+	err = r.db.QueryRowxContext(ctx, countQuery).Scan(&total)
+	if err != nil {
+		return nil, metaData, err
+	}
+
+	metaData.Limit = params.Limit
+	metaData.Offset = params.Offset
 	metaData.Total = total
 
 	return listMerchant, metaData, nil
@@ -176,8 +192,6 @@ func (r *merchantRepository) CreateMerchantItem(request model.MerchantItem) erro
 	return r.db.QueryRowx(createMerchantItemQuery, request.ID, request.MerchantId, request.Name, request.Category, request.ImageURL, request.Price).Scan(&request.ID)
 }
 
-
-
 func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.GetMerchantItemParams) (patients []model.MerchantItem, meta model.MetaData, err error) {
 	var listMerchantItem []model.MerchantItem
 	var getMerchantItemQuery = `SELECT * FROM "merchantItem" WHERE true`
@@ -194,12 +208,14 @@ func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.G
 	}
 
 	if params.ItemId != "" {
-		getMerchantItemQuery += fmt.Sprintf(` AND "id" = %s`, params.ItemId)
+		getMerchantItemQuery += fmt.Sprintf(` AND "id" = '%s'`, params.ItemId)
 	}
 
 	if params.ProductCategory != "" {
-		getMerchantItemQuery += fmt.Sprintf(` AND "category" = %s`, params.ProductCategory)
+		getMerchantItemQuery += fmt.Sprintf(` AND "category" = '%s'`, params.ProductCategory)
 	}
+
+	queryWithFilter := getMerchantItemQuery
 
 	if params.CreatedAt != "" {
 		if params.CreatedAt != "desc" && params.CreatedAt != "asc" {
@@ -226,16 +242,23 @@ func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.G
 	// Iterate over the rows and scan each row into a struct
 	for rows.Next() {
 		var merchantItem model.MerchantItem
-		if err := rows.Scan(&merchantItem.ID, &merchantItem.Name, &merchantItem.Category, &merchantItem.Price, &merchantItem.ImageURL, &merchantItem.CreatedAt); err != nil {
+		if err := rows.Scan(&merchantItem.ID, &merchantItem.MerchantId, &merchantItem.Name, &merchantItem.Category, &merchantItem.ImageURL, &merchantItem.Price, &merchantItem.CreatedAt); err != nil {
 			return nil, metaData, err
 		}
-		total += 1
 		listMerchantItem = append(listMerchantItem, merchantItem)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, metaData, err
 	}
 
+	countQuery := strings.Replace(queryWithFilter, "SELECT * FROM", "SELECT count(id) FROM", 1)
+	err = r.db.QueryRowxContext(ctx, countQuery).Scan(&total)
+	if err != nil {
+		return nil, metaData, err
+	}
+
+	metaData.Limit = params.Limit
+	metaData.Offset = params.Offset
 	metaData.Total = total
 
 	return listMerchantItem, metaData, nil

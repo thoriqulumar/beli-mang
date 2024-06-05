@@ -32,6 +32,10 @@ func (ctr *MerchantController) CreateMerchant(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, model.CreateMerchantGeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
 	}
 
+	if err := ctr.validate.Struct(createMerchantRequest); err != nil {
+		return ctx.JSON(http.StatusBadRequest, model.CreateMerchantGeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
+	}
+
 	merchantId, err := ctr.svc.CreateMerchant(createMerchantRequest)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, model.CreateMerchantGeneralResponse{Message: "Internal server error!", Error: err.Error()})
@@ -66,11 +70,14 @@ func (ctr *MerchantController) CreateMerchantItem(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, model.CreateMerchantGeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
 	}
 
+	if err := ctr.validate.Struct(createMerchantItemRequest); err != nil {
+		return ctx.JSON(http.StatusBadRequest, model.CreateMerchantGeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
+	}
+
 	merchantUUID, err := uuid.Parse(merchantID)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, model.CreateMerchantGeneralResponse{Message: "Internal server error!", Error: err.Error()})
 	}
-
 
 	itemId, err := ctr.svc.CreateMerchantItem(ctx.Request().Context(), createMerchantItemRequest, merchantUUID)
 	if err != nil {
@@ -79,7 +86,6 @@ func (ctr *MerchantController) CreateMerchantItem(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusCreated, model.CreateMerchantItemResponse{ItemId: itemId})
 }
-
 
 func (ctr *MerchantController) GetMerchantItem(ctx echo.Context) error {
 	merchantID := ctx.Param("merchantId")
@@ -134,7 +140,6 @@ func parseGetMerchantItemParams(params url.Values) model.GetMerchantItemParams {
 
 	return result
 }
-
 
 func parseGetMerchantParams(params url.Values) model.GetMerchantParams {
 	var result model.GetMerchantParams

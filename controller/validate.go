@@ -23,6 +23,6 @@ func customURL(fl validator.FieldLevel) bool {
 func isEmailValid(fl validator.FieldLevel) bool {
 	email := fl.Field().String()
 	// Regex sederhana untuk validasi email
-	regex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+	regex := regexp.MustCompile(`(?i)^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	return regex.MatchString(email)
 }
