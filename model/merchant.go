@@ -19,25 +19,28 @@ const (
 )
 
 type Merchant struct {
-	ID        uuid.UUID        `json:"id" db:"id"`
+	ID        uuid.UUID        `json:"merchantId" db:"id"`
 	Name      string           `json:"name" db:"name"`
-	Category  MerchantCategory `json:"category" db:"category"`
+	Category  MerchantCategory `json:"merchantCategory" db:"category"`
 	ImageURL  string           `json:"imageUrl" db:"imageUrl"`
-	Latitude  float64          `json:"latitude" db:"latitude"`
-	Longitude float64          `json:"longitude" db:"longitude"`
+	Location  Location         `json:"location" db:"-"`
 	CreatedAt time.Time        `json:"createdAt" db:"createdAt"`
 }
 
 type CreateMerchantRequest struct {
-	Name      string  `json:"name" validate:"required,min=2,max=30"`
-	Category  string  `json:"category" validate:"required,oneof=SmallRestaurant MediumRestaurant LargeRestaurant MerchandiseRestaurant BoothKiosk ConvenienceStore"`
-	ImageURL  string  `json:"imageUrl" validate:"required,custom_url"`
-	Latitude  float64 `json:"latitude" validate:"required"`
-	Longitude float64 `json:"longitude" validate:"required"`
+	Name     string   `json:"name" validate:"required,min=2,max=30"`
+	Category string   `json:"merchantCategory" validate:"required,oneof=SmallRestaurant MediumRestaurant LargeRestaurant MerchandiseRestaurant BoothKiosk ConvenienceStore"`
+	ImageURL string   `json:"imageUrl" validate:"required,custom_url"`
+	Location Location `json:"location" validate:"required"`
+}
+
+type Location struct {
+	Lat  float64 `json:"lat" validate:"required" db:"latitude"`
+	Long float64 `json:"long" validate:"required" db:"longitude"`
 }
 
 type CreateMerchantResponse struct {
-	MerchantId string
+	MerchantId string `json:"merchantId"`
 }
 
 type CreateMerchantGeneralResponse struct {
@@ -66,10 +69,10 @@ type GetMerchantParams struct {
 }
 
 type MerchantItem struct {
-	ID         uuid.UUID `json:"id" db:"id"`
+	ID         uuid.UUID `json:"itemId" db:"id"`
 	MerchantId uuid.UUID `json:"merchantId" db:"merchantId"`
 	Name       string    `json:"name" db:"name"`
-	Category   string    `json:"category" db:"category"`
+	Category   string    `json:"productCategory" db:"category"`
 	ImageURL   string    `json:"imageUrl" db:"imageUrl"`
 	Price      int       `json:"price" db:"price"`
 	CreatedAt  time.Time `json:"createdAt" db:"createdAt"`

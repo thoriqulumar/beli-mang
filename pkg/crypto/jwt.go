@@ -9,7 +9,10 @@ import (
 
 func GenerateToken(staff model.Staff, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, model.JWTClaims{
-
+		Id:       staff.ID.String(),
+		Username: staff.Username,
+		Email:    staff.Email,
+		Role:     string(staff.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(20 * time.Minute)),
 		},
@@ -34,7 +37,7 @@ func VerifyToken(token, secretKey string) (*model.JWTPayload, error) {
 	}
 
 	payload := &model.JWTPayload{
-		Id:       claims.ID,
+		Id:       claims.Id,
 		Username: claims.Username,
 		Email:    claims.Email,
 		Role:     model.Role(claims.Role),
