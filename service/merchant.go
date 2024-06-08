@@ -4,6 +4,7 @@ import (
 	"beli-mang/model"
 	"beli-mang/repo"
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -68,6 +69,8 @@ func (s *merchantSvc) CreateMerchantItem(ctx context.Context, request model.Crea
 		Name:       request.Name,
 		Category:   request.ProductCategory,
 		ImageURL:   request.ImageURL,
+		Price:      request.Price,
+		CreatedAt:  time.Now(),
 	}
 
 	err = s.repo.CreateMerchantItem(merchantItem)

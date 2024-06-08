@@ -101,4 +101,5 @@ type GetMerchantItemParams struct {
 type GetNearbyMerchantData struct {
 	Merchant Merchant `json:"merchant"`
 	Items    []Item   `json:"items"`
+	Distance string   `json:"distance"`
 }
