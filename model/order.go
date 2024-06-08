@@ -7,14 +7,14 @@ import (
 )
 
 type OrderRequest struct {
-	MerchantId      uuid.UUID          `json:"merchantId"`
+	MerchantId      string             `json:"merchantId" validate:"required"`
 	IsStartingPoint bool               `json:"isStartingPoint"`
-	Items           []OrderRequestItem `json:"items"`
+	Items           []OrderRequestItem `json:"items" validate:"required,dive"`
 }
 
 type OrderRequestItem struct {
-	ItemId   uuid.UUID `json:"itemId"`
-	Quantity int       `json:"quantity"`
+	ItemId   string `json:"itemId" validate:"required"`
+	Quantity int    `json:"quantity"`
 }
 
 type GetUserOrdersResponse []UserOrderData

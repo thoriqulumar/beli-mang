@@ -9,6 +9,7 @@ import (
 type Role string
 
 const (
+	RoleAll        = Role("all")
 	RoleAdmin Role = "admin"
 	RoleUser  Role = "user"
 )
@@ -22,9 +23,9 @@ type Staff struct {
 	CreatedAt time.Time `json:"createdAt" db:"createdAt"`
 }
 type RegisterStaffRequest struct {
-	Username string `json:"username" validate:"required"`
+	Username string `json:"username" validate:"required,min=5,max=30"`
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" validate:"required,min=5,max=30"`
 }
 
 type RegisterStaffResponse struct {

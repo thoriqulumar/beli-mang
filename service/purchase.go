@@ -2,13 +2,16 @@ package service
 
 import (
 	"beli-mang/model"
+	cerr "beli-mang/pkg/customErr"
 	"beli-mang/pkg/panics"
 	"beli-mang/repo"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"math"
+	"net/http"
 	"strings"
 	"sync"
 )
@@ -40,32 +43,48 @@ try use one table transaction
 
 func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.EstimateOrdersRequest) (response model.EstimateOrdersResponse, err error) {
 	logPrefix := "[purchase] EstimateOrders"
-	// calculate distance by tsp
-	end := model.Point{
-		Lat: request.UserLocation.Lat,
-		Lon: request.UserLocation.Long,
-	}
 	totalPrice := 0
 	var merchantIds []uuid.UUID
 	var itemIds []uuid.UUID
 	var detail model.OrderDetail
+	var merchantIDStartingPoint uuid.UUID
 	mapItemQuantity := make(map[uuid.UUID]int)
 	for _, order := range request.Orders {
-		merchantIds = append(merchantIds, order.MerchantId)
-		for _, item := range order.Items {
-			mapItemQuantity[item.ItemId] = item.Quantity
-			itemIds = append(itemIds, item.ItemId)
+		merchantId, err := uuid.Parse(order.MerchantId)
+		if err != nil {
+			return response, cerr.New(http.StatusNotFound, "bad merchant id")
 		}
+		if order.IsStartingPoint {
+			if merchantIDStartingPoint != uuid.Nil {
+				return response, cerr.New(http.StatusBadRequest, "multiple starting points")
+			}
+			merchantIDStartingPoint = merchantId
+		}
+
+		merchantIds = append(merchantIds, merchantId)
+		for _, item := range order.Items {
+			itemID, err := uuid.Parse(item.ItemId)
+			if err != nil {
+				return response, cerr.New(http.StatusNotFound, "bad item id")
+			}
+			mapItemQuantity[itemID] = item.Quantity
+			itemIds = append(itemIds, itemID)
+		}
+	}
+
+	if merchantIDStartingPoint == uuid.Nil {
+		return response, cerr.New(http.StatusBadRequest, "not have starting point")
 	}
 
 	// use go routine to get data concurrently
 	var mapMerchant map[uuid.UUID]model.Merchant
 	var mapItems map[uuid.UUID]model.Item
-	var errWg error
 	var wg sync.WaitGroup
 
+	wg.Add(1)
 	go panics.CaptureGoroutine(func() {
-		wg.Add(1)
+		var errWg error
+		defer wg.Done()
 		// get merchantsLocation
 		mapMerchant, errWg = s.merchantRepo.GetMerchantMapByIds(ctx, merchantIds)
 		if errWg != nil {
@@ -73,8 +92,10 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		}
 	}, func() {})
 
+	wg.Add(1)
 	go panics.CaptureGoroutine(func() {
-		wg.Add(1)
+		var errWg error
+		defer wg.Done()
 		// get itemIds Batch
 		mapItems, errWg = s.merchantRepo.GetMerchantItemMapByIds(ctx, itemIds)
 		if errWg != nil {
@@ -83,6 +104,10 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 	}, func() {})
 
 	wg.Wait()
+
+	if len(mapItems) == 0 || len(mapMerchant) == 0 {
+		return response, cerr.New(http.StatusBadRequest, "invalid items/merchants request")
+	}
 
 	for _, item := range mapItems {
 		totalPrice += item.Price * mapItemQuantity[item.Id]
@@ -94,12 +119,14 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 	for _, order := range request.Orders {
 		var boughtItems []model.BoughtItem
 		for _, item := range order.Items {
-			bItem := mapItems[item.ItemId].ItemToBoughtItem()
+			itemID, _ := uuid.Parse(item.ItemId)
+			bItem := mapItems[itemID].ItemToBoughtItem()
 			ItemsName = append(ItemsName, bItem.Name)
 			bItem.Quantity = item.Quantity
 			boughtItems = append(boughtItems, bItem)
 		}
-		merchant := mapMerchant[order.MerchantId]
+		merchantId, _ := uuid.Parse(order.MerchantId)
+		merchant := mapMerchant[merchantId]
 		merchantNames = append(merchantNames, merchant.Name)
 		merchantCategories = append(merchantCategories, merchant.Category)
 		detail = append(detail, model.OrderData{
@@ -113,8 +140,35 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		return response, err
 	}
 
+	// calculate distance by tsp
+	end := model.Point{
+		Lat: request.UserLocation.Lat,
+		Lon: request.UserLocation.Long,
+	}
 	// compose point from merchantLocation
-	estTime := EstimateDeliveryTimeTSP([]model.Point{}, end)
+	points := make([]model.Point, len(mapMerchant))
+	for _, merchant := range mapMerchant {
+		if merchant.ID == merchantIDStartingPoint {
+			points = append([]model.Point{{
+				Lat: merchant.Location.Lat,
+				Lon: merchant.Location.Long,
+			}}, points...)
+			continue
+		}
+		points = append(points, model.Point{
+			Lat: merchant.Location.Lat,
+			Lon: merchant.Location.Long,
+		})
+
+	}
+
+	// check first distance, points will always not null.
+	p1 := points[0]
+	p2 := end
+	if distance := haversineDistance(p1.Lat, p1.Lon, p2.Lat, p2.Lon); distance > model.MaxDistanceFromStartingPoint {
+		return response, cerr.New(http.StatusBadRequest, fmt.Sprintf("far from merchant starting point with distance %.2f km", distance))
+	}
+	estTime := EstimateDeliveryTimeTSP(points, end)
 
 	// tx start
 	tx, err := s.orderRepo.BeginTx(ctx)
@@ -195,7 +249,6 @@ func (s *purchaseSvc) GetUserOrders(ctx context.Context, request model.UserOrder
 
 	return
 }
-
 
 func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, params model.GetMerchantParams, lat, long string) (listMerchant []model.GetNearbyMerchantData, meta model.MetaData, err error) {
 	listMerchant, meta, err = s.orderRepo.GetNearbyMerchant(ctx, params, lat, long)
