@@ -33,10 +33,10 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: thorumr-repository
         IMAGE_TAG: latest
-        COMMIT_SHA: ${{ github.sha }}
+        UNIQUE_TAG: ${{ github.run_number }}-${{ github.sha }}
       run: |
         # Build the docker image
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$COMMIT_SHA .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$UNIQUE_TAG .
 
     - name: Delete latest tag in ECR
       run: |
@@ -47,10 +47,10 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: thorumr-repository
         IMAGE_TAG: latest
-        COMMIT_SHA: ${{ github.sha }}
+        UNIQUE_TAG: ${{ github.run_number }}-${{ github.sha }}
       run: |
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$UNIQUE_TAG
 
     - name: Force new deployment on ECS
       run: |
