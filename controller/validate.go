@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -24,8 +25,9 @@ func customURL(fl validator.FieldLevel) bool {
 
 func isEmailValid(fl validator.FieldLevel) bool {
 	email := fl.Field().String()
-	// Regex sederhana untuk validasi email
-	regex := regexp.MustCompile(`(?i)^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+	email = strings.TrimSpace(email) // Remove any leading or trailing spaces
+	// Improved regex for email validation
+	regex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return regex.MatchString(email)
 }
 
