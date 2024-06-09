@@ -2,8 +2,10 @@ package service
 
 import (
 	"beli-mang/model"
+	cerr "beli-mang/pkg/customErr"
 	"beli-mang/repo"
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,7 +60,7 @@ func (s *merchantSvc) CreateMerchantItem(ctx context.Context, request model.Crea
 
 	_, err = s.repo.GetMerchantById(ctx, merchantId)
 	if err != nil {
-		return "", err // TODO :  ERROR 404
+		return "", cerr.New(http.StatusNotFound, err.Error())
 	}
 
 	id := uuid.New()
@@ -82,14 +84,16 @@ func (s *merchantSvc) CreateMerchantItem(ctx context.Context, request model.Crea
 }
 
 func (s *merchantSvc) GetMerchantItem(ctx context.Context, merchantId uuid.UUID, params model.GetMerchantItemParams) (listMerchantItem []model.MerchantItem, meta model.MetaData, err error) {
+	listMerchantItem = []model.MerchantItem{}
 	_, err = s.repo.GetMerchantById(ctx, merchantId)
 	if err != nil {
-		return // TODO :  ERROR 404
+		return listMerchantItem, meta, cerr.New(http.StatusNotFound, err.Error())
 	}
 
+	params.MerchantId = merchantId.String()
 	listMerchantItem, meta, err = s.repo.GetMerchantItem(ctx, params)
 	if err != nil {
-		return
+		return listMerchantItem, meta, cerr.New(http.StatusInternalServerError, err.Error())
 	}
 
 	return listMerchantItem, meta, nil

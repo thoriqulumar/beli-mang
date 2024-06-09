@@ -24,7 +24,7 @@ func (i Item) ItemToBoughtItem() BoughtItem {
 		ProductCategory: string(i.Category),
 		Price:           i.Price,
 		ImageUrl:        i.ImageUrl,
-		CreatedAt:       i.CreatedAt.String(),
+		CreatedAt:       i.CreatedAt,
 		Quantity:        0,
 	}
 }

@@ -90,6 +90,7 @@ type CreateMerchantItemResponse struct {
 }
 
 type GetMerchantItemParams struct {
+	MerchantId      string
 	ItemId          string
 	Name            string
 	ProductCategory string

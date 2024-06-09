@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"time"
 )
 
@@ -38,7 +39,7 @@ type BoughtItem struct {
 	ProductCategory string    `json:"productCategory"`
 	Price           int       `json:"price"`
 	ImageUrl        string    `json:"imageUrl"`
-	CreatedAt       string    `json:"createdAt"`
+	CreatedAt       time.Time `json:"createdAt"`
 	Quantity        int       `json:"quantity"`
 }
 
@@ -52,18 +53,18 @@ const (
 
 // Order struct
 type Order struct {
-	OrderID            uuid.UUID          `json:"orderId" db:"orderId"`
-	OrderStatus        OrderStatus        `json:"orderStatus" db:"orderStatus"`
-	DetailRaw          json.RawMessage    `json:"-" db:"detail"`
-	Detail             OrderDetail        `json:"detail" db:"-"`
-	MerchantIDs        []uuid.UUID        `json:"merchantIds" db:"merchantIds"`
-	JoinedMerchantName string             `json:"joinedMerchantName" db:"joinedMerchantName"`
-	MerchantCategories []MerchantCategory `json:"merchantCategories" db:"merchantCategories"`
-	JoinedItemsName    string             `json:"joinedItemsName" db:"joinedItemsName"`
-	UserID             uuid.UUID          `json:"userId" db:"userId"`
-	UserLatitude       float64            `json:"userLatitude" db:"userLatitude"`
-	UserLongitude      float64            `json:"userLongitude" db:"userLongitude"`
-	CreatedAt          time.Time          `json:"createdAt" db:"createdAt"`
+	OrderID            uuid.UUID       `json:"orderId" db:"orderId"`
+	OrderStatus        OrderStatus     `json:"orderStatus" db:"orderStatus"`
+	DetailRaw          json.RawMessage `json:"-" db:"detail"`
+	Detail             OrderDetail     `json:"detail" db:"-"`
+	MerchantIDs        pq.StringArray  `json:"merchantIds" db:"merchantIds"`
+	JoinedMerchantName string          `json:"joinedMerchantName" db:"joinedMerchantName"`
+	MerchantCategories pq.StringArray  `json:"merchantCategories" db:"merchantCategories"`
+	JoinedItemsName    string          `json:"joinedItemsName" db:"joinedItemsName"`
+	UserID             uuid.UUID       `json:"userId" db:"userId"`
+	UserLatitude       float64         `json:"userLatitude" db:"userLatitude"`
+	UserLongitude      float64         `json:"userLongitude" db:"userLongitude"`
+	CreatedAt          time.Time       `json:"createdAt" db:"createdAt"`
 }
 
 func (o Order) ToUserOrderData() UserOrderData {

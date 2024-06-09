@@ -47,7 +47,7 @@ func (r *merchantRepository) GetMerchantMapByIds(ctx context.Context, ids []uuid
 	args := make([]interface{}, len(ids))
 	for i, id := range ids {
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		args[i] = id.String() // Convert UUID to string
+		args[i] = id.String()
 	}
 
 	// Join the placeholders with commas to form the IN clause
@@ -211,14 +211,18 @@ func (r *merchantRepository) CreateMerchantItem(request model.MerchantItem) erro
 	return r.db.QueryRowx(createMerchantItemQuery, request.ID, request.MerchantId, request.Name, request.Category, request.ImageURL, request.Price).Scan(&request.ID)
 }
 
-func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.GetMerchantItemParams) (patients []model.MerchantItem, meta model.MetaData, err error) {
-	var listMerchantItem []model.MerchantItem
+func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.GetMerchantItemParams) (listMerchantItem []model.MerchantItem, meta model.MetaData, err error) {
+	listMerchantItem = []model.MerchantItem{}
 	var getMerchantItemQuery = `SELECT * FROM "merchantItem" WHERE true`
 	var total int = 0
 	var metaData = model.MetaData{
 		Offset: params.Offset,
 		Limit:  params.Limit,
 		Total:  0,
+	}
+
+	if params.MerchantId != "" {
+		getMerchantItemQuery += fmt.Sprintf(` AND "merchantId" = '%s'`, params.MerchantId)
 	}
 
 	if params.Name != "" {
@@ -253,7 +257,7 @@ func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.G
 
 	rows, err := r.db.QueryContext(ctx, getMerchantItemQuery)
 	if err != nil {
-		return nil, metaData, err
+		return listMerchantItem, metaData, err
 	}
 
 	defer rows.Close()
@@ -262,18 +266,18 @@ func (r *merchantRepository) GetMerchantItem(ctx context.Context, params model.G
 	for rows.Next() {
 		var merchantItem model.MerchantItem
 		if err := rows.Scan(&merchantItem.ID, &merchantItem.MerchantId, &merchantItem.Name, &merchantItem.Category, &merchantItem.ImageURL, &merchantItem.Price, &merchantItem.CreatedAt); err != nil {
-			return nil, metaData, err
+			return listMerchantItem, metaData, err
 		}
 		listMerchantItem = append(listMerchantItem, merchantItem)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, metaData, err
+		return listMerchantItem, metaData, err
 	}
 
 	countQuery := strings.Replace(queryWithFilter, "SELECT * FROM", "SELECT count(id) FROM", 1)
 	err = r.db.QueryRowxContext(ctx, countQuery).Scan(&total)
 	if err != nil {
-		return nil, metaData, err
+		return listMerchantItem, metaData, err
 	}
 
 	metaData.Limit = params.Limit

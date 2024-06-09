@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/lib/pq"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -58,9 +57,9 @@ func (r *orderRepository) Create(ctx context.Context, tx *sqlx.Tx, order model.O
 		order.OrderID,
 		order.OrderStatus,
 		order.DetailRaw,
-		pq.Array(order.MerchantIDs),
+		order.MerchantIDs,
 		order.JoinedMerchantName,
-		pq.Array(order.MerchantCategories),
+		order.MerchantCategories,
 		order.JoinedItemsName,
 		order.UserID,
 		order.UserLatitude,
@@ -77,7 +76,7 @@ func (r *orderRepository) InsertCalculation(ctx context.Context, tx *sqlx.Tx, oc
 		"totalPrice",
 		"estimatedDeliveryTimeInMinutes",
 		"orderId",
-		createdAt)
+		"createdAt")
 	VALUES($1, $2, $3, $4, $5);
 	`
 	_, err := tx.ExecContext(ctx, insertCalculationQuery,
@@ -97,25 +96,25 @@ func (r *orderRepository) UpdateStatus(ctx context.Context, orderID uuid.UUID, s
 func (r *orderRepository) GetCalculatedEstimateById(ctx context.Context, id uuid.UUID) (model.CalculatedEstimate, error) {
 	var getCalculatedEstimateByIdQuery = `SELECT * FROM "calculatedEstimate" WHERE "calculatedEstimateId" = $1`
 	var result model.CalculatedEstimate
-	err := r.db.QueryRowxContext(ctx, getCalculatedEstimateByIdQuery, id).StructScan(result)
+	err := r.db.QueryRowxContext(ctx, getCalculatedEstimateByIdQuery, id).StructScan(&result)
 	return result, err
 }
 
 func (r *orderRepository) GetUserOrders(ctx context.Context, params model.UserOrdersParams) ([]model.Order, error) {
-	var listOrder []model.Order
-	var getUserOrdersQuery = `SELECT * FROM "order" WHERE "userId" = $1 AND "orderStatus" = $2 AND TRUE`
+	listOrder := []model.Order{}
+	var getUserOrdersQuery = `SELECT * FROM "order" WHERE "userId" = $1 AND "orderStatus" = $2 AND TRUE `
 	if params.MerchantId != nil {
-		getUserOrdersQuery += `AND "merchantId"=` + params.MerchantId.String()
+		getUserOrdersQuery += fmt.Sprintf(`AND '%s'=ANY("merchantId")`, params.MerchantId.String())
 	}
 	if params.Name != nil {
 		// query with searchable index
-		nameStmt := fmt.Sprintf(`to_tsvector('english', "joinedMerchantName") @@ plainto_tsquery('english', %s)
-   OR to_tsvector('english', "joinedItemsName") @@ plainto_tsquery('english', %s)`, *params.Name)
+		nameStmt := fmt.Sprintf(`to_tsvector('english', "joinedMerchantName") @@ plainto_tsquery('english', '%s')
+   OR to_tsvector('english', "joinedItemsName") @@ plainto_tsquery('english', '%s')`, *params.Name, *params.Name)
 		getUserOrdersQuery += `AND (` + nameStmt + `)`
 	}
 
 	if params.MerchantCategory != nil {
-		getUserOrdersQuery += fmt.Sprintf(`AND "merchantCategories"=ANY(%s)`, *params.MerchantCategory)
+		getUserOrdersQuery += fmt.Sprintf(`AND '%s'=ANY("merchantCategories") `, *params.MerchantCategory)
 	}
 
 	getUserOrdersQuery += fmt.Sprintf(`ORDER BY "createdAt" DESC LIMIT %d OFFSET %d`, params.Limit, params.Offset)
@@ -136,7 +135,7 @@ func (r *orderRepository) GetUserOrders(ctx context.Context, params model.UserOr
 		order.Detail = detail
 		listOrder = append(listOrder, order)
 	}
-	return make([]model.Order, 0), nil
+	return listOrder, nil
 }
 
 func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.GetMerchantParams, lat, long string) (listNearbyMerchant []model.GetNearbyMerchantData, meta model.MetaData, err error) {
