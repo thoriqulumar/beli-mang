@@ -33,8 +33,13 @@ func Authentication(secret string, role model.Role) echo.MiddlewareFunc {
 			// Add user data to the request context
 			c.Set("userData", payload)
 
-			if payload.Role != role {
+			if payload.Role != role && role != model.RoleAll {
 				resErr := customErr.NewUnauthorizedError("Unauthorized, invalid Role")
+				return c.JSON(resErr.StatusCode, resErr)
+			}
+
+			if payload.Id == "" {
+				resErr := customErr.NewUnauthorizedError("Unauthorized, invalid session")
 				return c.JSON(resErr.StatusCode, resErr)
 			}
 

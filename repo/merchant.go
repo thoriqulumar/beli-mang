@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -42,9 +41,20 @@ func (r *merchantRepository) CreateMerchant(request model.Merchant) error {
 }
 
 func (r *merchantRepository) GetMerchantMapByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]model.Merchant, error) {
-	var merchants map[uuid.UUID]model.Merchant
-	var getMerchantQuery = `SELECT * FROM merchant WHERE id IN ($1)`
-	rows, err := r.db.QueryxContext(ctx, getMerchantQuery, pq.Array(ids))
+	merchants := make(map[uuid.UUID]model.Merchant)
+	// Create a slice of placeholders and convert UUIDs to their string representation
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id.String() // Convert UUID to string
+	}
+
+	// Join the placeholders with commas to form the IN clause
+	pStr := fmt.Sprintf("IN (%s)", strings.Join(placeholders, ", "))
+	getMerchantQuery := `SELECT * FROM merchant WHERE id ` + pStr
+
+	rows, err := r.db.QueryxContext(ctx, getMerchantQuery, args...)
 	if err != nil {
 		return merchants, err
 	}
@@ -54,7 +64,7 @@ func (r *merchantRepository) GetMerchantMapByIds(ctx context.Context, ids []uuid
 
 	for rows.Next() {
 		var merchant model.Merchant
-		if err := rows.StructScan(&merchant); err != nil {
+		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Location.Lat, &merchant.Location.Long, &merchant.CreatedAt); err != nil {
 			return merchants, err
 		}
 		merchants[merchant.ID] = merchant
@@ -67,8 +77,17 @@ func (r *merchantRepository) GetMerchantMapByIds(ctx context.Context, ids []uuid
 
 func (r *merchantRepository) GetMerchantItemMapByIds(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]model.Item, error) {
 	mapItems := make(map[uuid.UUID]model.Item)
-	var getItemQuery = `SELECT * FROM "merchantItem" WHERE id IN ($1)`
-	rows, err := r.db.QueryxContext(ctx, getItemQuery, pq.Array(ids))
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id.String() // Convert UUID to string
+	}
+
+	// Join the placeholders with commas to form the IN clause
+	pStr := fmt.Sprintf("IN (%s)", strings.Join(placeholders, ", "))
+	var getItemQuery = `SELECT * FROM "merchantItem" WHERE id ` + pStr
+	rows, err := r.db.QueryxContext(ctx, getItemQuery, args...)
 	if err != nil {
 		return mapItems, err
 	}

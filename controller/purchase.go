@@ -2,10 +2,13 @@ package controller
 
 import (
 	"beli-mang/model"
+	cerr "beli-mang/pkg/customErr"
 	"beli-mang/service"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strings"
 )
 
 type PurchaseController struct {
@@ -31,12 +34,22 @@ func NewPurchaseController(svc service.PurchaseService, validate *validator.Vali
 func (ctr *PurchaseController) EstimateOrders(ctx echo.Context) error {
 	var etaOrderRequest model.EstimateOrdersRequest
 	if err := ctx.Bind(&etaOrderRequest); err != nil {
+		return ctx.JSON(http.StatusBadRequest, model.GeneralResponse{Message: "invalid format payload", Error: err.Error()})
+	}
+
+	if err := ctr.validate.Struct(etaOrderRequest); err != nil {
 		return ctx.JSON(http.StatusBadRequest, model.GeneralResponse{Message: "request doesn’t pass validation", Error: err.Error()})
 	}
 
+	user := GetUserFromContext(ctx)
+	etaOrderRequest.UserId, _ = uuid.Parse(user.Id)
 	data, err := ctr.svc.EstimateOrders(ctx.Request().Context(), etaOrderRequest)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, model.GeneralResponse{
+		errCode := cerr.GetCode(err)
+		if errCode == 0 {
+			errCode = http.StatusInternalServerError
+		}
+		return ctx.JSON(errCode, model.GeneralResponse{
 			Message: err.Error(),
 		})
 	}
@@ -71,8 +84,17 @@ func (ctr *PurchaseController) GetUserOrders(ctx echo.Context) error {
 }
 
 func (ctr *PurchaseController) GetMerchantNearby(ctx echo.Context) error {
-	lat := ctx.Param("lat")
-	long := ctx.Param("long")
+	latlong := ctx.Param("latlong")
+	temp := strings.Split(latlong, ",")
+	if len(temp) != 2 {
+		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "lat/long not valid"})
+	}
+	lat := temp[0]
+	long := temp[1]
+	err := ValidateLatLong(lat, long)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "lat/long not valid"})
+	}
 
 	value, err := ctx.FormParams()
 	if err != nil {

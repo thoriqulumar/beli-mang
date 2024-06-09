@@ -5,10 +5,14 @@ import (
 	"time"
 )
 
+var (
+	MaxDistanceFromStartingPoint float64 = 3 // in km
+)
+
 type EstimateOrdersRequest struct {
 	UserId       uuid.UUID      `json:"userId"`
-	UserLocation UserLocation   `json:"userLocation"`
-	Orders       []OrderRequest `json:"orders"`
+	UserLocation UserLocation   `json:"userLocation" validate:"required"`
+	Orders       []OrderRequest `json:"orders" validate:"required,dive"`
 }
 
 type EstimateOrdersResponse struct {

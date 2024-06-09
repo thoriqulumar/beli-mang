@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lib/pq"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -57,9 +58,9 @@ func (r *orderRepository) Create(ctx context.Context, tx *sqlx.Tx, order model.O
 		order.OrderID,
 		order.OrderStatus,
 		order.DetailRaw,
-		order.MerchantIDs,
+		pq.Array(order.MerchantIDs),
 		order.JoinedMerchantName,
-		order.MerchantCategories,
+		pq.Array(order.MerchantCategories),
 		order.JoinedItemsName,
 		order.UserID,
 		order.UserLatitude,
@@ -155,28 +156,34 @@ func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.Ge
 	}
 
 	if params.MerchantId != "" {
-		getMerchantQuery += fmt.Sprintf(` AND "id" = %s`, params.MerchantId)
+		getMerchantQuery += fmt.Sprintf(` AND "id" = '%s'`, params.MerchantId)
 	}
 
 	if params.MerchantCategory != "" {
-		getMerchantQuery += fmt.Sprintf(` AND "category" = %s`, params.MerchantCategory)
+		getMerchantQuery += fmt.Sprintf(` AND "category" = '%s'`, params.MerchantCategory)
 	}
 
+	orderClause := ""
 	if params.CreatedAt != "" {
 		if params.CreatedAt != "desc" && params.CreatedAt != "asc" {
 			params.CreatedAt = "desc"
 		}
-		getMerchantQuery += fmt.Sprintf(` ORDER BY "createdAt" %s`, params.CreatedAt)
+		orderClause = fmt.Sprintf(` ORDER BY "createdAt" %s`, params.CreatedAt)
 	} else {
-		getMerchantQuery += ` ORDER BY "createdAt" DESC`
+		orderClause = ` ORDER BY "createdAt" DESC`
+	}
+
+	if orderClause != "" {
+		orderClause = fmt.Sprintf(` ORDER BY distance ASC `)
+	} else {
+		orderClause += `,distance ASC`
 	}
 
 	if params.Limit == 0 {
 		params.Limit = 5 // default limit
 	}
-
+	getMerchantQuery += orderClause
 	getMerchantQuery += fmt.Sprintf(` LIMIT %d OFFSET %d`, params.Limit, params.Offset)
-	getMerchantQuery += fmt.Sprintf(` ORDER BY distance ASC `)
 
 	rows, err := r.db.QueryContext(ctx, getMerchantQuery)
 	if err != nil {
@@ -190,7 +197,8 @@ func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.Ge
 		var merchant model.Merchant
 		var items []model.Item
 		var nearbyMerchant model.GetNearbyMerchantData
-		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Location.Lat, &merchant.Location.Long, &merchant.CreatedAt); err != nil {
+		var distance float64
+		if err := rows.Scan(&merchant.ID, &merchant.Name, &merchant.Category, &merchant.ImageURL, &merchant.Location.Lat, &merchant.Location.Long, &merchant.CreatedAt, &distance); err != nil {
 			return nil, metaData, err
 		}
 		var getItemById = `SELECT * FROM "merchantItem" WHERE "merchantId" = $1`
@@ -199,6 +207,9 @@ func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.Ge
 			return nil, metaData, err
 		}
 
+		defer rowsItem.Close()
+
+		items = []model.Item{}
 		for rowsItem.Next() {
 			var item model.Item
 			if err := rowsItem.Scan(&item.Id, &item.MerchantId, &item.Name, &item.Category, &item.ImageUrl, &item.Price, &item.CreatedAt); err != nil {
@@ -210,6 +221,7 @@ func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.Ge
 
 		nearbyMerchant.Merchant = merchant
 		nearbyMerchant.Items = items
+		nearbyMerchant.Distance = fmt.Sprintf("%.2f m", distance)
 		total += 1
 		listNearbyMerchant = append(listNearbyMerchant, nearbyMerchant)
 	}
@@ -218,6 +230,8 @@ func (r *orderRepository) GetNearbyMerchant(ctx context.Context, params model.Ge
 	}
 
 	metaData.Total = total
+	metaData.Offset = params.Offset
+	metaData.Limit = params.Limit
 
 	return listNearbyMerchant, metaData, nil
 }
