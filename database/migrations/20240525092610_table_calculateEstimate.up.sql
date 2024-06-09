@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS "calculatedEstimate" (
       "totalPrice" INTEGER NOT NULL,
       "estimatedDeliveryTimeInMinutes" INTEGER NOT NULL,
       "orderId" UUID NOT NULL,
-      createdAt TIMESTAMP NOT NULL,
+      "createdAt" TIMESTAMP NOT NULL,
       CONSTRAINT fk_calculatedEstimate_orderId
           FOREIGN KEY("orderId")
               REFERENCES "order"("orderId")

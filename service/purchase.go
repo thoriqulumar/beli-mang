@@ -9,11 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"math"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 type PurchaseService interface {
@@ -45,10 +47,11 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 	logPrefix := "[purchase] EstimateOrders"
 	totalPrice := 0
 	var merchantIds []uuid.UUID
+	var merchantIdsStr []string
 	var itemIds []uuid.UUID
 	var detail model.OrderDetail
 	var merchantIDStartingPoint uuid.UUID
-	mapItemQuantity := make(map[uuid.UUID]int)
+	mapItemQuantities := make(map[uuid.UUID][]int)
 	for _, order := range request.Orders {
 		merchantId, err := uuid.Parse(order.MerchantId)
 		if err != nil {
@@ -62,12 +65,13 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		}
 
 		merchantIds = append(merchantIds, merchantId)
+		merchantIdsStr = append(merchantIdsStr, merchantId.String())
 		for _, item := range order.Items {
 			itemID, err := uuid.Parse(item.ItemId)
 			if err != nil {
 				return response, cerr.New(http.StatusNotFound, "bad item id")
 			}
-			mapItemQuantity[itemID] = item.Quantity
+			mapItemQuantities[itemID] = append(mapItemQuantities[itemID], item.Quantity)
 			itemIds = append(itemIds, itemID)
 		}
 	}
@@ -110,11 +114,14 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 	}
 
 	for _, item := range mapItems {
-		totalPrice += item.Price * mapItemQuantity[item.Id]
+		for _, qty := range mapItemQuantities[item.Id] {
+			totalPrice += item.Price * qty
+			//fmt.Printf("calculate_total itemId: %s, price: %d, quantity: %d\n", item.Id, item.Price, qty)
+		}
 	}
 
 	var merchantNames []string
-	var merchantCategories []model.MerchantCategory
+	var merchantCategoriesStr []string
 	var ItemsName []string
 	for _, order := range request.Orders {
 		var boughtItems []model.BoughtItem
@@ -128,7 +135,7 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		merchantId, _ := uuid.Parse(order.MerchantId)
 		merchant := mapMerchant[merchantId]
 		merchantNames = append(merchantNames, merchant.Name)
-		merchantCategories = append(merchantCategories, merchant.Category)
+		merchantCategoriesStr = append(merchantCategoriesStr, string(merchant.Category))
 		detail = append(detail, model.OrderData{
 			Merchant:        merchant,
 			IsStartingPoint: order.IsStartingPoint,
@@ -189,9 +196,9 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		OrderStatus:        model.OrderStatusDraft,
 		DetailRaw:          detailRaw,
 		Detail:             detail,
-		MerchantIDs:        merchantIds,
+		MerchantIDs:        pq.StringArray(merchantIdsStr),
 		JoinedMerchantName: strings.Join(merchantNames, ";"),
-		MerchantCategories: merchantCategories,
+		MerchantCategories: pq.StringArray(merchantCategoriesStr),
 		JoinedItemsName:    strings.Join(ItemsName, ";"),
 		UserID:             request.UserId, // buyerId
 		UserLatitude:       request.UserLocation.Lat,
@@ -208,6 +215,7 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 		EstimatedDeliveryTimeInMinutes: int(math.Round(estTime.Minutes())),
 		CalculatedEstimateId:           uuid.New(),
 		OrderId:                        orderId,
+		CreatedAt:                      time.Now(),
 	}
 	_, err = s.orderRepo.InsertCalculation(ctx, tx, calculatedData)
 	if err != nil {
@@ -225,7 +233,7 @@ func (s *purchaseSvc) EstimateOrders(ctx context.Context, request model.Estimate
 func (s *purchaseSvc) ConfirmOrder(ctx context.Context, request model.ConfirmOrderRequest) (response model.ConfirmOrderResponse, err error) {
 	calculatedData, err := s.orderRepo.GetCalculatedEstimateById(ctx, request.CalculatedEstimateId)
 	if err != nil {
-		return response, err
+		return response, cerr.New(http.StatusNotFound, err.Error())
 	}
 	err = s.orderRepo.UpdateStatus(ctx, calculatedData.OrderId, model.OrderStatusCreated)
 	if err != nil {
@@ -238,6 +246,7 @@ func (s *purchaseSvc) ConfirmOrder(ctx context.Context, request model.ConfirmOrd
 func (s *purchaseSvc) GetUserOrders(ctx context.Context, request model.UserOrdersParams) (response model.GetUserOrdersResponse, err error) {
 	// get userOrder
 	request.Status = model.OrderStatusCreated
+	response = model.GetUserOrdersResponse{}
 	listData, err := s.orderRepo.GetUserOrders(ctx, request)
 	if err != nil {
 		return response, err

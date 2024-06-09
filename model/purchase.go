@@ -35,7 +35,7 @@ type UserLocation struct {
 }
 
 type ConfirmOrderRequest struct {
-	CalculatedEstimateId uuid.UUID `json:"calculatedEstimateId"`
+	CalculatedEstimateId uuid.UUID `json:"calculatedEstimateId" validate:"required"`
 }
 
 type ConfirmOrderResponse struct {
